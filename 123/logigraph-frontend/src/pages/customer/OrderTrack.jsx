@@ -20,8 +20,8 @@ export default function CustomerOrderTrack() {
     try {
       setLoading(true);
       
-      // Load order details
-      const orderResponse = await orderAPI.getById(orderId);
+      // Load order details (customer endpoint)
+      const orderResponse = await orderAPI.getCustomerById(orderId);
       setOrder(orderResponse.data);
 
       // Try to load tracking info
@@ -114,7 +114,7 @@ export default function CustomerOrderTrack() {
           <div className="grid md:grid-cols-4 gap-4 mb-6">
             <div>
               <p className="text-sm text-gray-500">Order ID</p>
-              <p className="font-bold text-lg text-gray-900">#{order.id}</p>
+              <p className="font-bold text-lg text-gray-900">#{order.orderId ?? order.id}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Status</p>
@@ -127,11 +127,11 @@ export default function CustomerOrderTrack() {
             </div>
             <div>
               <p className="text-sm text-gray-500">Total Amount</p>
-              <p className="font-bold text-lg text-blue-600">₹{order.totalAmount?.toFixed(2) || '0.00'}</p>
+              <p className="font-bold text-lg text-blue-600">₹{((order.items ?? []).reduce((s, it) => s + (parseFloat(it.unitPrice ?? it.price ?? 0) * (it.quantity ?? 0)), 0)).toFixed(2)}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Items</p>
-              <p className="font-bold text-lg text-gray-900">{order.itemCount || order.items?.length || 0}</p>
+              <p className="font-bold text-lg text-gray-900">{(order.items ?? []).length}</p>
             </div>
           </div>
 
@@ -140,7 +140,7 @@ export default function CustomerOrderTrack() {
             <div className="flex gap-3">
               <MapPin className="w-5 h-5 text-blue-600 flex-shrink-0 mt-1" />
               <div>
-                <p className="text-gray-900">{order.deliveryLocation || 'N/A'}</p>
+                <p className="text-gray-900">{(order.destLat && order.destLng) ? `${order.destLat}, ${order.destLng}` : (order.deliveryLocation || 'N/A')}</p>
                 {order.notes && (
                   <p className="text-gray-600 text-sm mt-2">Notes: {order.notes}</p>
                 )}
@@ -223,15 +223,20 @@ export default function CustomerOrderTrack() {
           <div className="bg-white p-6 rounded-lg shadow">
             <h3 className="font-bold text-gray-900 mb-4">Order Items</h3>
             <div className="space-y-3">
-              {order.items.map((item, index) => (
-                <div key={index} className="flex items-center justify-between py-3 border-b last:border-0">
+              {order.items.map((item) => {
+                const key = item.itemId ?? item.id ?? `${item.productId}-${item.quantity}`;
+                const unit = parseFloat(item.unitPrice ?? item.price ?? 0);
+                const qty = item.quantity ?? 0;
+                return (
+                <div key={key} className="flex items-center justify-between py-3 border-b last:border-0">
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{item.productName || item.name || 'Product'}</p>
-                    <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                    <p className="text-sm text-gray-600">Qty: {qty}</p>
                   </div>
-                  <p className="font-bold text-gray-900">₹{(item.price * item.quantity)?.toFixed(2)}</p>
+                  <p className="font-bold text-gray-900">₹{(unit * qty).toFixed(2)}</p>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

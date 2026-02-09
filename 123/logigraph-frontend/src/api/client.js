@@ -76,12 +76,15 @@ export const customerAPI = {
 export const orderAPI = {
   // Customer Orders
   createOrder: (data) => api.post('/customer/orders', data),
+  getMyOrders: (page = 0, size = 100) => api.get('/customer/orders', { params: { page, size } }),
   
   // Manager Orders
   getAll: (page = 0, size = 20) =>
     api.get('/manager/orders', { params: { page, size } }),
   
   getById: (id) => api.get(`/manager/orders/${id}`),
+  // Customer-specific fetch by id
+  getCustomerById: (id) => api.get(`/customer/orders/${id}`),
   
   getByTrackingId: (trackingId) =>
     api.get(`/manager/orders/tracking/${trackingId}`),

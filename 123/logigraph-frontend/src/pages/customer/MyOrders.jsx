@@ -18,8 +18,10 @@ export default function CustomerMyOrders() {
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const response = await orderAPI.getAll(0, 100);
-      setOrders(Array.isArray(response.data) ? response.data : []);
+      const response = await orderAPI.getMyOrders(0, 100);
+      // backend may return paged structure or plain array
+      const data = response.data?.content ?? response.data ?? [];
+      setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to load orders:', error);
       toast.error('Failed to load orders');
@@ -101,12 +103,18 @@ export default function CustomerMyOrders() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredOrders.map(order => (
-              <div key={order.id} className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
+            {filteredOrders.map(order => {
+              const orderId = order.orderId ?? order.id;
+              const items = order.items ?? [];
+              const total = items.reduce((s, it) => s + (parseFloat(it.unitPrice ?? it.price ?? 0) * (it.quantity ?? 0)), 0);
+              const delivery = (order.destLat && order.destLng) ? `${order.destLat}, ${order.destLng}` : (order.deliveryLocation || 'N/A');
+
+              return (
+              <div key={orderId} className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition">
                 <div className="grid md:grid-cols-6 gap-4 items-start">
                   <div>
                     <p className="text-sm text-gray-500">Order ID</p>
-                    <p className="font-bold text-gray-900">#{order.id}</p>
+                    <p className="font-bold text-gray-900">#{orderId}</p>
                   </div>
 
                   <div>
@@ -118,22 +126,22 @@ export default function CustomerMyOrders() {
 
                   <div>
                     <p className="text-sm text-gray-500">Total Amount</p>
-                    <p className="font-bold text-lg text-blue-600">₹{order.totalAmount?.toFixed(2) || '0.00'}</p>
+                    <p className="font-bold text-lg text-blue-600">₹{total.toFixed(2)}</p>
                   </div>
 
                   <div>
                     <p className="text-sm text-gray-500">Items</p>
-                    <p className="font-bold text-gray-900">{order.itemCount || order.items?.length || 0} items</p>
+                    <p className="font-bold text-gray-900">{items.length} items</p>
                   </div>
 
                   <div>
                     <p className="text-sm text-gray-500">Delivery Location</p>
-                    <p className="text-gray-900 text-sm truncate">{order.deliveryLocation || 'N/A'}</p>
+                    <p className="text-gray-900 text-sm truncate">{delivery}</p>
                   </div>
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => navigate(`/customer/track/${order.id}`)}
+                      onClick={() => navigate(`/customer/track/${orderId}`)}
                       className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium flex items-center justify-center gap-2"
                     >
                       <Eye className="w-4 h-4" />
@@ -142,7 +150,8 @@ export default function CustomerMyOrders() {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
